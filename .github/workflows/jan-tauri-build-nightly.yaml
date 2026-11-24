@@ -87,6 +87,8 @@ jobs:
     uses: ./.github/workflows/template-tauri-build-macos.yml
     needs: [get-update-version, set-public-provider]
     if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.labels.*.name, 'ci:build') && (github.event.action != 'labeled' || github.event.label.name == 'ci:build'))
+    permissions:
+      contents: write
     secrets: inherit
     with:
       ref: ${{ needs.set-public-provider.outputs.ref }}
@@ -102,6 +104,8 @@ jobs:
     secrets: inherit
     needs: [get-update-version, set-public-provider]
     if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.labels.*.name, 'ci:build') && (github.event.action != 'labeled' || github.event.label.name == 'ci:build'))
+    permissions:
+      contents: write
     with:
       ref: ${{ needs.set-public-provider.outputs.ref }}
       public_provider: ${{ needs.set-public-provider.outputs.public_provider }}
@@ -114,6 +118,8 @@ jobs:
     secrets: inherit
     needs: [get-update-version, set-public-provider]
     if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.labels.*.name, 'ci:build') && (github.event.action != 'labeled' || github.event.label.name == 'ci:build'))
+    permissions:
+      contents: write
     with:
       ref: ${{ needs.set-public-provider.outputs.ref }}
       public_provider: ${{ needs.set-public-provider.outputs.public_provider }}
@@ -127,6 +133,8 @@ jobs:
     secrets: inherit
     needs: [get-update-version, set-public-provider]
     if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.labels.*.name, 'ci:build') && (github.event.action != 'labeled' || github.event.label.name == 'ci:build'))
+    permissions:
+      contents: write
     with:
       ref: ${{ needs.set-public-provider.outputs.ref }}
       public_provider: ${{ needs.set-public-provider.outputs.public_provider }}
