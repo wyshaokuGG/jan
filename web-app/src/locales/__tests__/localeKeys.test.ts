@@ -23,6 +23,9 @@ const GUARDED_NAMESPACES = [
  * namespace here once every locale has caught up with it.
  */
 const COMPLETE_NAMESPACES = ['tools']
+const ZH_CN_NAMESPACES = readdirSync(join(LOCALES_ROOT, 'en'))
+  .filter((entry) => entry.endsWith('.json'))
+  .map((entry) => entry.slice(0, -'.json'.length))
 
 /**
  * Keys the code composes at runtime (`t(`setup:${stage.messageKey}`)`), which a
@@ -291,5 +294,43 @@ describe.each(COMPLETE_NAMESPACES)('translated %s locales', (namespace) => {
       mismatched,
       `placeholders differ in ${locale}/${namespace}.json`
     ).toEqual([])
+  })
+})
+
+describe.each(ZH_CN_NAMESPACES)('zh-CN %s translations', (namespace) => {
+  const english = leaves(loadNamespace(namespace))
+  const translatedBundle = loadNamespace(namespace, 'zh-CN')
+  const translated = leaves(translatedBundle)
+
+  it('has every English key', () => {
+    const translatedKeys = new Set(translated.map(([key]) => key))
+    const missing = english
+      .map(([key]) => key)
+      .filter((key) => !translatedKeys.has(key))
+
+    expect(missing).toEqual([])
+  })
+
+  it('preserves every English placeholder', () => {
+    const mismatched = english
+      .filter(([key]) => lookup(translatedBundle, key) !== undefined)
+      .filter(
+        ([key, value]) =>
+          placeholders(lookup(translatedBundle, key)).join() !==
+          placeholders(value).join()
+      )
+      .map(([key]) => key)
+
+    expect(mismatched).toEqual([])
+  })
+
+  it('has no malformed question-mark runs', () => {
+    const malformed = translated
+      .filter(
+        ([, value]) => typeof value === 'string' && /\?{2,}/.test(value)
+      )
+      .map(([key]) => key)
+
+    expect(malformed).toEqual([])
   })
 })

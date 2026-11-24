@@ -277,9 +277,38 @@
     "delete": "删除"
   },
   "modelSettings": {
-    "nglDisabledByFit": "Auto-fit is choosing GPU layers. Turn off Auto-fit to set this manually.",
+    "nglDisabledByFit": "自动适配当前正在选择 GPU 层。关闭自动适配后即可手动设置。",
     "title": "模型设置 - {{modelId}}",
-    "description": "配置模型设置以优化性能和行为。"
+    "description": "配置模型设置以优化性能和行为。",
+    "samplingDefaults": {
+      "title": "默认采样参数",
+      "description": "此模型的默认采样器设置。除非被助手级或请求级参数覆盖，否则使用此设置。"
+    },
+    "specDraft": {
+      "section": "推测解码",
+      "enable": "启用推测解码",
+      "enableDescription": "每一步草拟多个令牌，并在一次验证中全部确认，以加快生成速度。使用模型内置的 MTP 预测头，或随模型下载的草拟模型（MTP、Eagle3、DFlash 或 DSpark）。",
+      "nMax": "最大草拟令牌数",
+      "nMaxDescription": "每一步草拟的最大令牌数。默认值为 16。",
+      "nMin": "最小草拟令牌数",
+      "nMinDescription": "每一步草拟的最小令牌数。默认值为 0。",
+      "pMin": "最小草拟概率",
+      "pMinDescription": "贪婪草拟的最小概率（0–1）。默认值为 0.75。",
+      "probabilistic": "概率性草拟采样",
+      "probabilisticDescription": "对草拟令牌进行采样，而不是直接选取概率最高的令牌，并由模型通过拒绝采样进行验证。关闭此选项时使用贪婪草拟（默认）。",
+      "nUbatch": "草拟批次大小",
+      "nUbatchDescription": "草拟上下文的物理批次大小。调低可节省 VRAM；设为 0 时使用模型的批次大小（默认）。"
+    },
+    "templateKwargs": {
+      "section": "聊天模板选项",
+      "description": "此模型聊天模板接受的附加选项。每次请求都会通过 chat_template_kwargs 发送；若保留默认值，则由模板自行决定。",
+      "addCustom": "添加自定义选项",
+      "keyPlaceholder": "名称",
+      "valuePlaceholder": "值",
+      "add": "添加",
+      "cancel": "取消",
+      "remove": "移除"
+    }
   },
   "projects": {
     "title": "项目",
@@ -333,10 +362,24 @@
       "updateButton": "更新",
       "alreadyExists": "项目\"{{projectName}}\"已存在",
       "createSuccess": "项目\"{{projectName}}\"创建成功",
-      "renameSuccess": "项目从\"{{oldName}}\"重命名为\"{{newName}}\""
+      "renameSuccess": "项目从\"{{oldName}}\"重命名为\"{{newName}}\"",
+      "assistant": "助手",
+      "selectAssistant": "选择助手（可选）",
+      "noAssistant": "无助手",
+      "addAssistant": "添加助手",
+      "updateSuccess": "项目“{{projectName}}”已成功更新"
     },
     "viewProject": "查看项目",
-    "sendMessageToStart": "在上方发送消息即可开始。"
+    "sendMessageToStart": "在上方发送消息即可开始。",
+    "selectAssistant": "选择助手",
+    "noAssistantAssigned": "此项目未分配助手",
+    "files": "文件",
+    "filesDescription": "添加 PDF、文档或其他文本，以便在此项目中引用。",
+    "conversation": "对话",
+    "instructions": "指令",
+    "setup": "设置",
+    "instructionsDescription": "自定义回复的语气和风格",
+    "manageInstructions": "管理指令"
   },
   "dialogs": {
     "changeDataFolder": {
@@ -359,6 +402,10 @@
     "deleteAllChats": {
       "title": "删除项目外的对话",
       "description": "这将删除不在任何项目中的对话。项目中的对话、已加星标的对话和任务将被保留。此操作无法撤销。"
+    },
+    "deleteAllThreadsInProject": {
+      "title": "删除项目中的所有对话",
+      "description": "项目“{{projectName}}”中的 {{count}} 个对话将被删除。此操作无法撤销。"
     }
   },
   "errorDialog": {
@@ -412,7 +459,16 @@
     },
     "downloadFailed": {
       "title": "下载失败",
-      "description": "{{item}} 下载失败"
+      "description": "{{item}} 下载失败",
+      "descriptionWithReason": "{{item}} 下载失败：{{reason}}",
+      "reason": {
+        "dns": "无法解析服务器名称",
+        "refused": "连接被拒绝",
+        "timeout": "连接超时",
+        "tls": "无法建立安全连接",
+        "proxy": "无法连接代理",
+        "unreachable": "无法连接服务器"
+      }
     },
     "modelValidationStarted": {
       "title": "正在验证模型",
@@ -461,6 +517,59 @@
     "deleteAllChats": {
       "title": "对话已删除",
       "description": "已删除项目外的对话，项目中的对话和任务已保留。"
+    },
+    "openSettings": "打开设置",
+    "openLogs": "打开日志",
+    "downloadTokenRequired": {
+      "title": "需要 Hugging Face 令牌",
+      "description": "此模型需要 Hugging Face 访问令牌。请在设置中添加令牌，然后重试。"
+    },
+    "downloadLicenseRequired": {
+      "title": "请在 Hugging Face 上接受模型许可证",
+      "description": "下载前，您必须在 Hugging Face 页面上接受此模型的许可证。"
+    },
+    "downloadRateLimited": {
+      "title": "Hugging Face 限制了请求频率",
+      "description": "您已达到 Hugging Face 的请求频率限制。添加令牌可能会提高请求限额，请稍后重试。"
+    },
+    "fileUploaded": {
+      "title": "文件已处理",
+      "description": "文件已处理并成功建立索引"
+    },
+    "uploadFailed": {
+      "title": "处理失败",
+      "description": "无法处理文件",
+      "subjectThisFile": "此文件",
+      "pdfMalformedXref": "{{subject}} 的 PDF 交叉引用表格式异常，无法解析。请尝试在 PDF 查看器中打开并重新保存（文件 → 打印 → 另存为 PDF），然后重新上传。",
+      "pdfScanned": "{{subject}} 似乎是扫描件或基于图像的 PDF。目前不支持 OCR，请上传基于文本的 PDF。",
+      "pdfEncrypted": "{{subject}} 已加密，请输入密码后重试。",
+      "pdfUnsupportedFeature": "{{subject}} 使用了 Jan 尚无法解析的 PDF 功能（例如 PostScript 颜色或阴影功能）。请尝试重新保存（文件 → 打印 → 另存为 PDF）以展平文件，然后重新上传。",
+      "pdfGeneric": "{{subject}}无法解析为 PDF。文件可能已损坏，或使用了不受支持的 PDF 功能。",
+      "fileTooLarge": "{{subject}} 过大。{{message}}。",
+      "unsupportedType": "不支持文件类型“{{type}}”。",
+      "ioError": "无法读取 {{subject}}：{{message}}",
+      "parseGeneric": "无法解析 {{subject}}：{{message}}",
+      "fallback": "无法处理 {{subject}}。"
+    },
+    "fileDeleted": {
+      "title": "文件已删除",
+      "description": "文件已从项目中移除"
+    },
+    "deleteFailed": {
+      "title": "删除失败",
+      "description": "无法删除文件"
+    },
+    "fileAlreadyExists": {
+      "title": "文件已存在",
+      "description": "此文件已附加到该项目"
+    },
+    "unsupportedFileType": {
+      "title": "不支持的文件类型",
+      "description": "项目引用不支持“.{{extension}}”文件扩展名。"
+    },
+    "attachmentsDisabledInfo": {
+      "title": "附件已禁用",
+      "description": "设置中已禁用附件"
     }
   },
   "llamacppBusyOnExit": {
@@ -743,9 +852,123 @@
   "deleteThreadFailed": "无法删除此对话。重启后它可能会重新出现。",
   "continueAsTask": {
     "action": "作为任务继续",
-    "title": "将此聊天作为任务继续?",
+    "title": "将此聊天作为任务继续？",
     "description": "Jan 会保留此对话,并将其作为 Cowork 任务继续。任务可以在自己的工作区中使用工具、写入文件和运行命令,而无需在每一步询问。它无法再改回聊天。",
     "descriptionFolder": "Jan 会保留此对话,并将其作为 Cowork 任务继续。任务可以在 {{folder}} 中编辑文件和运行命令,而无需在每次更改时询问。它无法再改回聊天。",
     "confirm": "作为任务继续"
+  },
+  "local": "本地",
+  "selectFolder": "选择文件夹",
+  "selectModel": "请先选择一个模型",
+  "commands": "命令",
+  "cmdHelp": "列出可用命令",
+  "cmdClear": "清除当前会话",
+  "cmdModels": "切换当前模型",
+  "cmdModelsHint": "输入 /models，然后从列表中选择模型",
+  "cmdModelSwitched": "已切换到 {{name}}",
+  "cmdUnknown": "未知命令：{{name}}。请尝试 /help",
+  "cmdBusy": "Agent 运行时无法执行此操作",
+  "cmdCompact": "将会话上下文压缩为摘要",
+  "cmdCompacted": "已压缩 {{before}} 条消息为 {{after}} 条",
+  "cmdNothingToCompact": "暂无可压缩的内容",
+  "cmdCompactFailed": "压缩失败：{{error}}",
+  "cmdPlan": "切换计划模式（只读：Agent 只提出建议，不进行写入）",
+  "cmdPlanOn": "计划模式已开启：Agent 只读取并提出建议，不进行写入",
+  "cmdPlanOff": "计划模式已关闭：恢复正常执行",
+  "cmdTodo": "打开进度面板",
+  "cmdTasks": "打开后台任务面板",
+  "cmdInit": "分析项目并编写技能和记忆",
+  "cmdInitRunning": "正在初始化此项目",
+  "skillsInContext": "本次运行中 Agent 可用的技能",
+  "skillsTitle": "管理技能",
+  "skillsScopeProject": "{{folder}} 的技能",
+  "skillsScopeGlobal": "全局技能，可用于所有会话",
+  "skillsScopeMerged": "{{folder}} 的技能，以及所有会话共享的全局技能",
+  "skillOriginFolder": "文件夹",
+  "skillOriginGlobal": "全局",
+  "skillsEmpty": "暂无技能",
+  "skillsPickOrNew": "选择要编辑的技能，或创建一个新技能。",
+  "skillNew": "新建技能",
+  "skillDelete": "删除技能",
+  "skillSave": "保存",
+  "skillSaved": "技能已保存",
+  "skillNameRequired": "请输入技能名称",
+  "skillNamePlaceholder": "skill-name",
+  "skillContentPlaceholder": "使用 Markdown 描述可复用的流程…",
+  "skillHubImport": "从中心导入",
+  "skillHubTitle": "Anthropic 技能中心",
+  "skillHubEmpty": "中心中未找到技能",
+  "skillImport": "导入",
+  "skillReimport": "重新导入",
+  "skillImported": "已导入 {{name}}",
+  "sessions": "会话",
+  "analyticsConsentDetail": "我们会收集匿名数据，以了解功能的使用情况。绝不会跟踪您的聊天记录或个人信息。您可以随时在“设置 > 隐私”中更改此设置。",
+  "analyticsConsentQuestion": "您愿意帮助我们改进 Jan 吗？",
+  "searchThreads": "搜索会话...",
+  "toNavigate": "用于导航",
+  "toSelect": "用于选择",
+  "toClose": "用于关闭",
+  "clearRecent": "清除",
+  "dismiss": "忽略",
+  "multimodal": "多模态",
+  "noAssistant": "无助手",
+  "settingUpJan": "正在启动 Jan…",
+  "registeringExtensions": "正在注册扩展…",
+  "continueAiResponse": "继续生成 AI 回复",
+  "modelControls": {
+    "updateFailed": "无法更新模型设置"
+  },
+  "missingDependenciesDialog": {
+    "title": "缺少系统库",
+    "description": "{{backend}} 已安装，但找不到某些必需的系统库。应用可能回退到 CPU，或无法正常运行。",
+    "installLabel": "请安装以下组件以修复此问题：",
+    "download": "下载",
+    "additionalLibraries": "其他缺少的库：",
+    "missingLibraries": "缺少的库：",
+    "showRawLibraries": "显示 {{count}} 个缺少的库名称"
+  },
+  "attachmentsIngestion": {
+    "title": "选择附件处理方式",
+    "description": "选择是直接将这些文件纳入聊天，还是将其作为嵌入向量建立索引。",
+    "inline": "注入聊天",
+    "embeddings": "使用嵌入向量"
+  },
+  "attachmentInjectedIndicator": "已注入聊天",
+  "attachmentEmbeddedIndicator": "已嵌入用于 RAG",
+  "viewInjectedContent": "查看注入内容",
+  "injectedContentTitle": "注入的文件内容",
+  "errors": {
+    "fileTooLarge": "文件过大",
+    "fileTooLargeDescription": "{{fileName}} 超过 {{maxFileSizeMB}}MB 限制"
+  },
+  "files": {
+    "chunksCount": "{{count}} 个分块",
+    "title": "文件",
+    "empty": "您附加的文件和 Agent 创建的文件会显示在这里。",
+    "a11y": "文件：{{count}}",
+    "attachments": "附件",
+    "notImported": "不在工作区中"
+  },
+  "coworkExtensionProvider": "Cowork 无法运行由扩展添加的提供商。请选择其他模型，或在聊天中使用它。",
+  "askPageOf": "第 {{current}} 页，共 {{total}} 页",
+  "askSkipped": "已跳过",
+  "untitledThread": "您的对话",
+  "runNotification": {
+    "finish": {
+      "title": "Jan 已完成任务",
+      "body": "{{name}} 已就绪。"
+    },
+    "error": {
+      "title": "Jan 任务失败",
+      "body": "{{name}} 已因错误而停止。"
+    },
+    "approval": {
+      "title": "Jan 需要您的批准",
+      "body": "{{name}} 正在等待您批准工具调用。"
+    },
+    "cancel": {
+      "title": "Jan 任务已取消",
+      "body": "{{name}} 已取消。"
+    }
   }
 }

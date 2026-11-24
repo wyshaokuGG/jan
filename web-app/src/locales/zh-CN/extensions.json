@@ -1,8 +1,200 @@
 {
+  "commands": "命令",
+  "categorizedCommand": "{{category}}：{{title}}",
+  "commandFailed": "{{command}}（{{extension}}）失败",
+  "moreActions": "更多操作",
+  "extensionLabel": "扩展：{{extension}}",
+  "statusItemTooltip": "扩展：{{extension}} - {{text}}",
+  "settingSaveFailed": "无法保存 {{setting}}",
+  "activationFailed": "启动失败：{{error}}",
   "crashed": {
     "reason": "已停止：{{error}}",
     "disabled": "它在 10 分钟内崩溃了 3 次，在 Jan 重新启动前将保持关闭。",
     "safeMode": "已安装的扩展导致 Jan 无法启动，因此现已开启安全模式。",
     "safeModeFailed": "已安装的扩展导致 Jan 无法启动，并且无法开启安全模式。本次不会加载这些扩展。"
+  },
+  "state": {
+    "inactive": "未启用",
+    "activating": "正在启动",
+    "active": "运行中",
+    "failed": "失败",
+    "crashed": "已崩溃"
+  },
+  "development": "开发",
+  "unload": "卸载",
+  "unloadFailed": "无法卸载 {{extension}}：{{error}}",
+  "risk": {
+    "low": "低风险",
+    "medium": "中风险",
+    "high": "高风险"
+  },
+  "devLoad": {
+    "button": "加载解压后的扩展",
+    "title": "从文件夹加载 {{name}}？",
+    "description": "此开发扩展会一直运行，直到 Jan 重新启动。它将获得所请求的所有权限：",
+    "proposals": "建议的 API：{{proposals}}",
+    "confirm": "加载",
+    "readFailed": "无法读取 {{file}}：{{error}}",
+    "invalidJson": "package.json 不是有效的 JSON：{{error}}",
+    "invalidManifest": "清单无效：{{errors}}",
+    "invalidBundle": "{{file}}不是有效的扩展包：{{error}}",
+    "alreadyLoaded": "已加载 ID 为 {{id}} 的扩展"
+  },
+  "permissions": {
+    "uiNotify": {
+      "title": "显示通知",
+      "description": "在应用中显示简短消息，并标注扩展名称。"
+    },
+    "network": {
+      "title": "连接到 {{host}}",
+      "description": "向此主机发送请求并读取回复。",
+      "localServers": "包括此电脑上任意端口的服务器：通过 http 或 https 访问 localhost 和 127.0.0.1；其他本地地址（例如 ::1）仅可通过 https 访问。Jan 自带的本地 API 服务器始终会被阻止。",
+      "localPorts": "涵盖此主机通过 http 或 https 提供的所有端口，但始终会阻止 Jan 自带的本地 API 服务器。"
+    },
+    "providers": {
+      "title": "添加模型提供商",
+      "description": "添加会显示在模型选择器中的模型提供商。回复不包含网页图片，因此无法让 Jan 联系其他服务器。"
+    },
+    "tools": {
+      "title": "为模型添加工具",
+      "description": "添加模型可在聊天期间调用的工具。每次调用仍须获得您的批准。"
+    },
+    "conversationsRead": {
+      "title": "读取您的对话",
+      "description": "读取您的话题及其中的消息。"
+    },
+    "conversationsWrite": {
+      "title": "修改您的对话",
+      "description": "创建话题并向其中添加消息。它添加的消息不包含网页图片，因此无法让 Jan 联系其他服务器。"
+    },
+    "chatHooks": {
+      "title": "在发送消息前修改消息",
+      "description": "在消息送达模型之前重写消息文本。"
+    }
+  },
+  "cancel": "取消",
+  "noPermissions": "它不请求任何权限。",
+  "tabs": {
+    "installed": "已安装",
+    "catalog": "目录"
+  },
+  "sections": {
+    "builtin": "内置",
+    "installed": "已安装",
+    "development": "已加载用于开发"
+  },
+  "noneInstalled": "尚未安装任何扩展。",
+  "enable": "启用 {{name}}",
+  "details": {
+    "open": "详情",
+    "back": "返回扩展",
+    "version": "版本 {{version}}",
+    "rollback": "回退到 {{version}}",
+    "permissions": "已授予的权限",
+    "revoke": "撤销",
+    "settings": "设置",
+    "uninstall": "卸载",
+    "uninstallTitle": "卸载 {{name}}？",
+    "uninstallDescription": "此操作会从这台电脑中删除其文件，且无法撤销。",
+    "builtinFixed": "内置扩展是 Jan 的组成部分，无法禁用或卸载。",
+    "notFound": "未安装此扩展。"
+  },
+  "origin": {
+    "unverified": "未验证",
+    "unverifiedHint": "此文件并非来自您添加的索引。只有在信任提供该文件的人时才可安装。",
+    "sha512": "SHA-512：{{hash}}",
+    "trustAuthor": "我信任此文件的作者",
+    "fromSource": "来源：{{source}}",
+    "integrityChecked": "完整性已检查",
+    "integrityCheckedUnsigned": "完整性已检查（未签名来源）",
+    "verifiedBy": "由 {{source}} 验证",
+    "unsignedSource": "未签名来源",
+    "unsignedSourceHint": "此索引没有固定的签名密钥，因此无法证明谁发布了此条目。只有在信任该索引时才可安装。",
+    "trustSource": "我信任作者和此索引"
+  },
+  "install": {
+    "fromFile": "从文件安装...",
+    "bundleFilter": "扩展包",
+    "title": "安装 {{name}}？",
+    "description": "版本 {{version}}，发布者为 {{publisher}}。它将获得以下权限：",
+    "confirm": "安装",
+    "done": "已安装 {{name}} {{version}}"
+  },
+  "update": {
+    "title": "将 {{name}} 更新到 {{version}}？",
+    "description": "您当前使用的是版本 {{version}}。已授予的权限会保留。",
+    "confirm": "更新",
+    "added": "新增权限",
+    "removed": "不再需要",
+    "nothingAdded": "此更新不需要新增任何权限。"
+  },
+  "sourceChange": {
+    "indexWasIndex": "此更新来自 {{next}}，但 {{name}} 是从 {{previous}} 安装的。",
+    "indexWasFile": "此更新来自 {{next}}，但 {{name}} 是从文件 {{file}} 安装的。",
+    "fileWasIndex": "此更新是磁盘上的一个文件，但 {{name}} 是从 {{previous}} 安装的。",
+    "unsigned": "{{name}} 曾由 {{previous}} 的签名密钥验证，但此更新未签名。"
+  },
+  "safeMode": {
+    "title": "安全模式",
+    "description": "启动 Jan 时不加载任何已安装的扩展。内置扩展仍会运行。",
+    "banner": "安全模式已开启。已安装的扩展不会加载。",
+    "turnOff": "关闭安全模式"
+  },
+  "sources": {
+    "title": "索引源",
+    "description": "索引会列出可供安装的扩展。请只添加您信任的索引。",
+    "none": "暂无源。请添加索引 URL，以浏览其中的扩展。",
+    "url": "索引 URL",
+    "name": "名称",
+    "publicKey": "公钥（可选）",
+    "add": "添加源",
+    "remove": "移除 {{name}}",
+    "removeKeyed": {
+      "title": "移除 {{name}}及其签名密钥？",
+      "description": "移除后，对应的固定密钥也会被遗忘。如果您在不使用密钥的情况下再次添加此索引，其条目将不再进行签名检查。已安装的扩展不受影响。固定密钥：",
+      "confirm": "移除源"
+    },
+    "removedPin": {
+      "warning": "移除此索引时，它具有固定签名密钥。没有密钥时，其条目为未签名状态。请重新添加该索引及其密钥，或再次按“添加源”继续使用而不提供密钥。",
+      "key": "之前固定的密钥："
+    },
+    "notice": {
+      "dropped": "部分已保存的源未通过检查并已被移除：{{sources}}。之前的文件已保存在 {{path}}。",
+      "unreadable": "无法读取已保存的源，因此未列出任何源。之前的文件已保存在 {{path}}。"
+    },
+    "keyPinned": "已固定签名密钥",
+    "unsignedHint": "未固定签名密钥：从此索引安装时需要您明确表示信任。",
+    "rotate": {
+      "offer": "此索引宣布了一个新的签名密钥。",
+      "review": "检查新密钥",
+      "title": "更改 {{name}} 的签名密钥？",
+      "description": "您固定的密钥用于签名此索引；索引中指定了一个下次将用于签名的新密钥。接受后，仅信任使用新密钥签名的索引。请仅在您预期此更改时接受。",
+      "current": "固定密钥",
+      "next": "新密钥",
+      "confirm": "固定新密钥"
+    },
+    "errors": {
+      "invalidUrl": "请输入有效的 URL。",
+      "notHttps": "仅允许使用 https URL。",
+      "credentials": "URL 不得包含用户名或密码。",
+      "required": "请输入名称。",
+      "invalidKey": "请输入 base64 编码的 ed25519 公钥。"
+    }
+  },
+  "catalog": {
+    "loading": "正在加载目录...",
+    "empty": "此索引未列出任何扩展。",
+    "by": "发布者：{{publisher}}",
+    "install": "安装",
+    "update": "更新到 {{version}}",
+    "installed": "已安装",
+    "provenance": "来源方提供的溯源信息"
+  },
+  "errors": {
+    "list": "无法读取已安装的扩展：{{error}}",
+    "stage": "无法打开扩展：{{error}}",
+    "install": "无法安装 {{name}}：{{error}}",
+    "change": "更改失败：{{error}}",
+    "catalog": "无法加载 {{source}}：{{error}}"
   }
 }
