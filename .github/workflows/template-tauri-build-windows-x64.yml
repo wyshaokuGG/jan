@@ -11,6 +11,11 @@ on:
         type: string
         default: none
         description: 'none: build only, github: build and publish to github, aws s3: build and publish to aws s3'
+      allow_unsigned_artifacts:
+        required: false
+        type: boolean
+        default: false
+        description: 'Omit updater signatures for unsigned manual test artifacts; keep false for releases'
       new_version:
         required: true
         type: string
@@ -31,15 +36,13 @@ on:
       runner:
         required: false
         type: string
-        default: 'windows-2025'
+        default: 'windows-2022'
         description: >
           Label of the runner to build on. A self-hosted label is what carries
           the engine toolchain; the default keeps a GitHub-hosted image, which
-          has enough for the vulkan variant. Pinned rather than
-          `windows-latest` for reproducibility only -- it does not choose a
-          Visual Studio version: this label resolves to `windows-2025-vs2026`
-          too, which is why the engine build asks for Ninja rather than trying
-          to make the Visual Studio generator work.
+          has enough for the vulkan variant. Use Windows 2022 so CUDA 13.2 uses
+          the VS 2022 host compiler; Windows 2025 resolves to VS 2026, where
+          cudafe++ crashes during CUDA compiler detection.
       engine_variant:
         required: false
         type: string
@@ -150,7 +153,9 @@ jobs:
         run: |
           echo "Version: ${{ inputs.new_version }}"
           # Update tauri.conf.json
-          jq '.bundle.createUpdaterArtifacts = true' ./src-tauri/tauri.conf.json > /tmp/tauri.conf.json
+          jq --argjson createUpdaterArtifacts '${{ !inputs.allow_unsigned_artifacts }}' \
+            '.bundle.createUpdaterArtifacts = $createUpdaterArtifacts' \
+            ./src-tauri/tauri.conf.json > /tmp/tauri.conf.json
           mv /tmp/tauri.conf.json ./src-tauri/tauri.conf.json
           jq '.bundle.windows.nsis.template = "tauri.bundle.windows.nsis.template"' ./src-tauri/tauri.windows.conf.json > /tmp/tauri.windows.conf.json
           mv /tmp/tauri.windows.conf.json ./src-tauri/tauri.windows.conf.json
@@ -179,7 +184,13 @@ jobs:
           fi
 
           # Add sign commands to tauri.windows.conf.json
-          jq '.bundle.windows.signCommand = "powershell -ExecutionPolicy Bypass -File ./sign.ps1 %1"' ./src-tauri/tauri.windows.conf.json > /tmp/tauri.windows.conf.json
+          sign_command='powershell -ExecutionPolicy Bypass -File ./sign.ps1 %1'
+          if [ "${{ inputs.allow_unsigned_artifacts }}" = "true" ]; then
+            sign_command='echo "Unsigned artifact: %1"'
+          fi
+          jq --arg signCommand "$sign_command" \
+            '.bundle.windows.signCommand = $signCommand' \
+            ./src-tauri/tauri.windows.conf.json > /tmp/tauri.windows.conf.json
           mv /tmp/tauri.windows.conf.json ./src-tauri/tauri.windows.conf.json
 
           # Every version-bearing manifest, the jan CLI's included, in one place.
@@ -268,6 +279,7 @@ jobs:
       # A persistent runner may already carry a newer AzureSignTool, and
       # installing an older version over it is an error.
       - name: Install AzureSignTool
+        if: ${{ !inputs.allow_unsigned_artifacts }}
         run: |
           if (-not (Get-Command AzureSignTool -ErrorAction SilentlyContinue)) {
             dotnet tool install --global --version 6.0.0 AzureSignTool
@@ -313,7 +325,7 @@ jobs:
           make build
         env:
           AZURE_KEY_VAULT_URI: ${{ secrets.AZURE_KEY_VAULT_URI }}
-          JAN_ENGINE_REQUIRE_SIGNING: '1'
+          JAN_ENGINE_REQUIRE_SIGNING: ${{ inputs.allow_unsigned_artifacts && '0' || '1' }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -392,16 +404,21 @@ jobs:
           cd ./src-tauri/target/release/bundle/nsis
           if [ "${{ inputs.channel }}" != "stable" ]; then
             FILE_NAME=Jan-${{ inputs.channel }}_${{ inputs.new_version }}_x64-setup.exe
-            WIN_SIG=$(cat Jan-${{ inputs.channel }}_${{ inputs.new_version }}_x64-setup.exe.sig)
+            WIN_SIG_FILE=Jan-${{ inputs.channel }}_${{ inputs.new_version }}_x64-setup.exe.sig
 
             MSI_FILE="Jan-${{ inputs.channel }}_${{ inputs.new_version }}_x64_en-US.msi"
             # PORTABLE_FILE_NAME="Jan-${{ inputs.channel }}_${{ inputs.new_version }}_x64-portable.exe"
           else
             FILE_NAME=Jan_${{ inputs.new_version }}_x64-setup.exe
-            WIN_SIG=$(cat Jan_${{ inputs.new_version }}_x64-setup.exe.sig)
+            WIN_SIG_FILE=Jan_${{ inputs.new_version }}_x64-setup.exe.sig
 
             MSI_FILE="Jan_${{ inputs.new_version }}_x64_en-US.msi"
             # PORTABLE_FILE_NAME="Jan_${{ inputs.new_version }}_x64-portable.exe"
+          fi
+          if [ "${{ inputs.allow_unsigned_artifacts }}" = "true" ]; then
+            WIN_SIG=""
+          else
+            WIN_SIG=$(cat "$WIN_SIG_FILE")
           fi
 
           echo "::set-output name=WIN_SIG::$WIN_SIG"

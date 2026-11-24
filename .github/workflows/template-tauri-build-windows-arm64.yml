@@ -19,6 +19,11 @@ on:
         type: string
         default: none
         description: 'none: build only, github: build and publish to github, aws s3: build and publish to aws s3'
+      allow_unsigned_artifacts:
+        required: false
+        type: boolean
+        default: false
+        description: 'Omit updater signatures for unsigned manual test artifacts; keep false for releases'
       new_version:
         required: true
         type: string
@@ -348,12 +353,19 @@ jobs:
       - name: Update app version and product name
         shell: bash
         run: |
-          jq '.bundle.createUpdaterArtifacts = true' ./src-tauri/tauri.conf.json > /tmp/c.json
+          jq --argjson createUpdaterArtifacts '${{ !inputs.allow_unsigned_artifacts }}' \
+            '.bundle.createUpdaterArtifacts = $createUpdaterArtifacts' \
+            ./src-tauri/tauri.conf.json > /tmp/c.json
           mv /tmp/c.json ./src-tauri/tauri.conf.json
 
-          jq '.bundle.targets = ["nsis"]
+          sign_command='powershell -ExecutionPolicy Bypass -File ./sign.ps1 %1'
+          if [ "${{ inputs.allow_unsigned_artifacts }}" = "true" ]; then
+            sign_command='echo "Unsigned artifact: %1"'
+          fi
+          jq --arg signCommand "$sign_command" \
+             '.bundle.targets = ["nsis"]
               | .bundle.windows.nsis.template = "tauri.bundle.windows.nsis.template"
-              | .bundle.windows.signCommand = "powershell -ExecutionPolicy Bypass -File ./sign.ps1 %1"' \
+              | .bundle.windows.signCommand = $signCommand' \
              ./src-tauri/tauri.windows.conf.json > /tmp/w.json
           mv /tmp/w.json ./src-tauri/tauri.windows.conf.json
 
@@ -454,6 +466,7 @@ jobs:
           save-if: ${{ github.event_name != 'pull_request' }}
 
       - name: Install AzureSignTool
+        if: ${{ !inputs.allow_unsigned_artifacts }}
         run: dotnet tool install --global --version 6.0.0 AzureSignTool
 
       - name: Config Yarn
@@ -483,7 +496,7 @@ jobs:
         run: make build
         env:
           AZURE_KEY_VAULT_URI: ${{ secrets.AZURE_KEY_VAULT_URI }}
-          JAN_ENGINE_REQUIRE_SIGNING: '1'
+          JAN_ENGINE_REQUIRE_SIGNING: ${{ inputs.allow_unsigned_artifacts && '0' || '1' }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -573,20 +586,23 @@ jobs:
           # Fails here rather than in the updater, where a missing signature
           # surfaces to users as a download error.
           [ -f "$FILE_NAME" ]     || { echo "::error::$FILE_NAME not in $(pwd)"; ls -la; exit 1; }
-          [ -s "$FILE_NAME.sig" ] || { echo "::error::$FILE_NAME.sig missing or empty -- createUpdaterArtifacts or the signing key did not take"; exit 1; }
+          if [ "${{ inputs.allow_unsigned_artifacts }}" = "true" ]; then
+            WIN_SIG=""
+          else
+            [ -s "$FILE_NAME.sig" ] || { echo "::error::$FILE_NAME.sig missing or empty -- createUpdaterArtifacts or the signing key did not take"; exit 1; }
+            WIN_SIG=$(cat "$FILE_NAME.sig")
+          fi
 
           {
             echo "FILE_NAME=$FILE_NAME"
-            echo "WIN_SIG=$(cat "$FILE_NAME.sig")"
+            echo "WIN_SIG=$WIN_SIG"
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload NSIS Installer Artifact
         uses: actions/upload-artifact@v4.6.2
         with:
           name: jan-windows-arm64-exe-${{ env.NEW_VERSION }}
-          path: |
-            ./src-tauri/target/release/bundle/nsis/*.exe
-            ./src-tauri/target/release/bundle/nsis/*.sig
+          path: ./src-tauri/target/release/bundle/nsis/*
           if-no-files-found: error
 
       ## Upload to s3 for nightly and beta

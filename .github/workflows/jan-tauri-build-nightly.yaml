@@ -7,7 +7,7 @@ on:
     inputs:
       public_provider:
         type: choice
-        description: 'Public Provider'
+        description: 'none uploads unsigned test artifacts to Actions; aws-s3 publishes signed nightly builds'
         options:
           - none
           - aws-s3
@@ -96,6 +96,7 @@ jobs:
       new_version: ${{ needs.get-update-version.outputs.new_version }}
       channel: nightly
       cortex_api_port: '39261'
+      allow_unsigned_artifacts: ${{ github.event_name == 'workflow_dispatch' && needs.set-public-provider.outputs.public_provider == 'none' }}
 
   # No runner label: the templates default to a GitHub-hosted image and
   # setup-engine-toolchain fetches CUDA from NVIDIA's redist archives.
@@ -113,6 +114,7 @@ jobs:
       channel: nightly
       cortex_api_port: '39261'
       engine_variant: cuda13-vulkan
+      allow_unsigned_artifacts: ${{ github.event_name == 'workflow_dispatch' && needs.set-public-provider.outputs.public_provider == 'none' }}
   build-linux-x64:
     uses: ./.github/workflows/template-tauri-build-linux-x64.yml
     secrets: inherit
@@ -128,6 +130,7 @@ jobs:
       cortex_api_port: '39261'
       disable_updater: ${{ github.event.inputs.disable_updater == 'true' }}
       engine_variant: cuda13-vulkan
+      allow_unsigned_artifacts: ${{ github.event_name == 'workflow_dispatch' && needs.set-public-provider.outputs.public_provider == 'none' }}
   build-windows-arm64:
     uses: ./.github/workflows/template-tauri-build-windows-arm64.yml
     secrets: inherit
@@ -142,6 +145,7 @@ jobs:
       channel: nightly
       engine_variant: cuda13-vulkan
       vulkan_fallback: '1'
+      allow_unsigned_artifacts: ${{ github.event_name == 'workflow_dispatch' && needs.set-public-provider.outputs.public_provider == 'none' }}
 
   sync-temp-to-latest:
     needs:

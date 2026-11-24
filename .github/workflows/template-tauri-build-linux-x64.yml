@@ -11,6 +11,11 @@ on:
         type: string
         default: none
         description: 'none: build only, github: build and publish to github, aws s3: build and publish to aws s3'
+      allow_unsigned_artifacts:
+        required: false
+        type: boolean
+        default: false
+        description: 'Omit updater signatures for unsigned manual test artifacts; keep false for releases'
       new_version:
         required: true
         type: string
@@ -139,7 +144,9 @@ jobs:
         run: |
           echo "Version: ${{ inputs.new_version }}"
           # Update tauri.conf.json
-          jq '.bundle.createUpdaterArtifacts = true' ./src-tauri/tauri.conf.json > /tmp/tauri.conf.json
+          jq --argjson createUpdaterArtifacts '${{ !inputs.allow_unsigned_artifacts }}' \
+            '.bundle.createUpdaterArtifacts = $createUpdaterArtifacts' \
+            ./src-tauri/tauri.conf.json > /tmp/tauri.conf.json
           mv /tmp/tauri.conf.json ./src-tauri/tauri.conf.json
           if [ "${{ inputs.channel }}" != "stable" ]; then
             jq '.bundle.linux.deb.files = {"usr/bin/bun": "resources/bin/bun"}' ./src-tauri/tauri.linux.conf.json > /tmp/tauri.linux.conf.json
@@ -206,10 +213,14 @@ jobs:
           make build
 
           APP_IMAGE=./src-tauri/target/release/bundle/appimage/$(ls ./src-tauri/target/release/bundle/appimage/ | grep AppImage | head -1)
-          yarn tauri signer sign \
-          --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
-          --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" \
-          "$APP_IMAGE"
+          if [ "$ALLOW_UNSIGNED_ARTIFACTS" = "true" ]; then
+            echo "Skipping updater signature for unsigned artifact build"
+          else
+            yarn tauri signer sign \
+              --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
+              --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" \
+              "$APP_IMAGE"
+          fi
 
         env:
           RELEASE_CHANNEL: '${{ inputs.channel }}'
@@ -219,6 +230,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           AUTO_UPDATER_DISABLED: ${{ inputs.disable_updater && 'true' || 'false' }}
+          ALLOW_UNSIGNED_ARTIFACTS: ${{ inputs.allow_unsigned_artifacts }}
           JAN_SIGNING_KEY: ${{ secrets.JAN_SIGNING_KEY }}
           TAURI_TRAY: libappindicator3
 
@@ -304,13 +316,15 @@ jobs:
           if [ "${{ inputs.channel }}" != "stable" ]; then
             DEB_FILE_NAME=Jan-${{ inputs.channel }}_${{ inputs.new_version }}_amd64.deb
             APPIMAGE_FILE_NAME=Jan-${{ inputs.channel }}_${{ inputs.new_version }}_amd64.AppImage
-            DEB_SIG=$(cat deb/Jan-${{ inputs.channel }}_${{ inputs.new_version }}_amd64.deb.sig)
-            APPIMAGE_SIG=$(cat appimage/Jan-${{ inputs.channel }}_${{ inputs.new_version }}_amd64.AppImage.sig)
           else
             DEB_FILE_NAME=Jan_${{ inputs.new_version }}_amd64.deb
             APPIMAGE_FILE_NAME=Jan_${{ inputs.new_version }}_amd64.AppImage
-            DEB_SIG=$(cat deb/Jan_${{ inputs.new_version }}_amd64.deb.sig)
-            APPIMAGE_SIG=$(cat appimage/Jan_${{ inputs.new_version }}_amd64.AppImage.sig)
+          fi
+          DEB_SIG=""
+          APPIMAGE_SIG=""
+          if [ "${{ inputs.allow_unsigned_artifacts }}" != "true" ]; then
+            DEB_SIG=$(cat "deb/$DEB_FILE_NAME.sig")
+            APPIMAGE_SIG=$(cat "appimage/$APPIMAGE_FILE_NAME.sig")
           fi
 
           echo "DEB_SIG=$DEB_SIG" >> $GITHUB_OUTPUT

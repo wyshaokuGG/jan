@@ -11,6 +11,11 @@ on:
         type: string
         default: none
         description: 'none: build only, github: build and publish to github, aws s3: build and publish to aws s3'
+      allow_unsigned_artifacts:
+        required: false
+        type: boolean
+        default: false
+        description: 'Omit updater signatures for unsigned manual test artifacts; keep false for releases'
       new_version:
         required: true
         type: string
@@ -118,7 +123,9 @@ jobs:
         run: |
           echo "Version: ${{ inputs.new_version }}"
           # Update tauri.conf.json
-          jq '.bundle.createUpdaterArtifacts = true' ./src-tauri/tauri.conf.json > /tmp/tauri.conf.json
+          jq --argjson createUpdaterArtifacts '${{ !inputs.allow_unsigned_artifacts }}' \
+            '.bundle.createUpdaterArtifacts = $createUpdaterArtifacts' \
+            ./src-tauri/tauri.conf.json > /tmp/tauri.conf.json
           mv /tmp/tauri.conf.json ./src-tauri/tauri.conf.json
 
           # Every version-bearing manifest, the jan CLI's included, in one place.
@@ -153,12 +160,14 @@ jobs:
             cat ./package.json
           fi
       - name: Get key for notarize
+        if: ${{ !inputs.allow_unsigned_artifacts }}
         run: base64 -d <<< "$NOTARIZE_P8_BASE64" > /tmp/notary-key.p8
         shell: bash
         env:
           NOTARIZE_P8_BASE64: ${{ secrets.NOTARIZE_P8_BASE64 }}
 
       - uses: apple-actions/import-codesign-certs@v2.0.0
+        if: ${{ !inputs.allow_unsigned_artifacts }}
         continue-on-error: true
         with:
           p12-file-base64: ${{ secrets.CODE_SIGN_P12_BASE64 }}
@@ -197,21 +206,33 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.DELTA_AWS_REGION }}
           AWS_EC2_METADATA_DISABLED: 'true'
 
+      - name: Configure Apple signing credentials
+        if: ${{ !inputs.allow_unsigned_artifacts }}
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.CODE_SIGN_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.CODE_SIGN_P12_PASSWORD }}
+          APPLE_API_ISSUER: ${{ secrets.NOTARY_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.NOTARY_KEY_ID }}
+        run: |
+          {
+            printf 'APPLE_CERTIFICATE=%s\n' "$APPLE_CERTIFICATE"
+            printf 'APPLE_CERTIFICATE_PASSWORD=%s\n' "$APPLE_CERTIFICATE_PASSWORD"
+            printf 'APPLE_API_ISSUER=%s\n' "$APPLE_API_ISSUER"
+            printf 'APPLE_API_KEY=%s\n' "$APPLE_API_KEY"
+            printf 'APPLE_API_KEY_PATH=%s\n' '/tmp/notary-key.p8'
+          } >> "$GITHUB_ENV"
+
       - name: Build app
         run: |
           make build
         env:
           NODE_OPTIONS: "--max-old-space-size=4196"
-          JAN_ENGINE_REQUIRE_SIGNING: '1'
+          JAN_ENGINE_REQUIRE_SIGNING: ${{ inputs.allow_unsigned_artifacts && '0' || '1' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APP_PATH: '.'
           POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
           POSTHOG_HOST: ${{ secrets.POSTHOG_HOST }}
-          APPLE_CERTIFICATE: ${{ secrets.CODE_SIGN_P12_BASE64 }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.CODE_SIGN_P12_PASSWORD }}
-          APPLE_API_ISSUER: ${{ secrets.NOTARY_ISSUER }}
-          APPLE_API_KEY: ${{ secrets.NOTARY_KEY_ID }}
-          APPLE_API_KEY_PATH: /tmp/notary-key.p8
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           JAN_SIGNING_KEY: ${{ secrets.JAN_SIGNING_KEY }}
@@ -268,7 +289,9 @@ jobs:
 
       # Tauri signs the .app and notarizes the dmg, but nothing in that path
       # would notice an unsigned nested binary until a user's Gatekeeper did.
+      # Manual unsigned builds skip this verification and are not for release.
       - name: Verify the signed and notarized bundle
+        if: ${{ !inputs.allow_unsigned_artifacts }}
         shell: bash
         run: |
           bundle=$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' | head -1)
@@ -316,14 +339,17 @@ jobs:
             zip -r jan-${{ inputs.channel }}-mac-universal-${{ inputs.new_version }}.zip Jan-${{ inputs.channel }}.app
             FILE_NAME=jan-${{ inputs.channel }}-mac-universal-${{ inputs.new_version }}.zip
             DMG_NAME=Jan-${{ inputs.channel }}_${{ inputs.new_version }}_universal.dmg
-            MAC_UNIVERSAL_SIG=$(cat Jan-${{ inputs.channel }}.app.tar.gz.sig)
             TAR_NAME=Jan-${{ inputs.channel }}.app.tar.gz
           else
             zip -r jan-mac-universal-${{ inputs.new_version }}.zip Jan.app
             FILE_NAME=jan-mac-universal-${{ inputs.new_version }}.zip
-            MAC_UNIVERSAL_SIG=$(cat Jan.app.tar.gz.sig)
             DMG_NAME=Jan_${{ inputs.new_version }}_universal.dmg
             TAR_NAME=Jan.app.tar.gz
+          fi
+          if [ -f "$TAR_NAME.sig" ]; then
+            MAC_UNIVERSAL_SIG=$(cat "$TAR_NAME.sig")
+          else
+            MAC_UNIVERSAL_SIG=""
           fi
 
           echo "::set-output name=MAC_UNIVERSAL_SIG::$MAC_UNIVERSAL_SIG"
