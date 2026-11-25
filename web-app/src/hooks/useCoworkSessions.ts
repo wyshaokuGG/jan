@@ -88,7 +88,7 @@ export type CoworkSession = {
 type CoworkSessionsState = {
   sessions: CoworkSession[]
   currentId: string | null
-  createSession: () => string
+  createSession: (options?: { forceNew?: boolean }) => string
   selectSession: (id: string) => void
   deleteSession: (id: string) => void
   setFolder: (id: string, folder: string | null) => void
@@ -172,18 +172,19 @@ export const useCoworkSessions = create<CoworkSessionsState>()((set, get) => ({
     sessions: [],
     currentId: null,
 
-    createSession: () => {
+    createSession: ({ forceNew = false } = {}) => {
       // Already viewing an untouched session, reuse it instead of piling
       // up empty ones (e.g. from repeated clicks on "New session").
       const { currentId, sessions } = get()
       const current = sessions.find((s) => s.id === currentId)
       if (
-          current &&
-          !current.unavailable &&
-          !current.cleared &&
-          current.turns.length === 0
-        )
-          return current.id
+        !forceNew &&
+        current &&
+        !current.unavailable &&
+        !current.cleared &&
+        current.turns.length === 0
+      )
+        return current.id
 
       const id = crypto.randomUUID()
       const session: CoworkSession = {

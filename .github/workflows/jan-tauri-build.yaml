@@ -11,11 +11,12 @@ concurrency:
 jobs:
   # Job create Update app version based on latest release tag with build number and save to output
   get-update-version:
+    if: github.repository == 'janhq/jan'
     uses: ./.github/workflows/template-get-update-version.yml
 
   create-draft-release:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    if: github.repository == 'janhq/jan' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}

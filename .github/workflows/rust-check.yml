@@ -1,11 +1,7 @@
 name: Rust Check
 on:
   workflow_dispatch:
-  # Caches are branch-scoped and only the default branch's are readable from
-  # anywhere, so main has to run this to leave anything worth restoring.
-  push:
-    branches:
-      - main
+  # Dispatch on main to seed the branch-scoped cache used by subsequent PRs.
   pull_request:
     # PRs open against main; the dev-only filter left this to manual dispatch.
     branches:

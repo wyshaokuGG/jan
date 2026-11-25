@@ -67,13 +67,14 @@ describe('/cowork/$sessionId', () => {
     expect(run(Route, { sessionId: 'a' })).toBeNull()
   })
 
-  it('sends an untouched session to unified home', async () => {
+  it('opens an untouched session as a new Cowork task', async () => {
     const { Route } = (await import('../cowork/$sessionId')) as unknown as { Route: Opts }
     useCoworkSessions.setState({
       sessions: [{ id: 'blank', title: 'blank', folder: null, turns: [], messages: [], updated: 1 }],
       currentId: null,
     })
-    expect(run(Route, { sessionId: 'blank' })).toMatchObject({ to: '/' })
+    expect(run(Route, { sessionId: 'blank' })).toBeNull()
+    expect(useCoworkSessions.getState().currentId).toBe('blank')
     expect(useCoworkSessions.getState().sessions).toHaveLength(1)
   })
 

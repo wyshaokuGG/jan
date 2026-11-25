@@ -39,9 +39,12 @@ import { useThreadManagement } from '@/hooks/useThreadManagement'
 import { useSearchDialog } from '@/hooks/useSearchDialog'
 import { useProjectDialog } from '@/hooks/useProjectDialog'
 import { useAgentMode } from '@/hooks/useAgentMode'
+import { useCoworkSessions } from '@/hooks/useCoworkSessions'
 import { TEMPORARY_CHAT_ID } from '@/constants/chat'
 import { PlatformShortcuts, ShortcutAction } from '@/lib/shortcuts'
 import { useSidebar } from '@/components/ui/sidebar'
+import { isCoworkEnabled } from '@/lib/version'
+import { supportsCowork } from '@/lib/coworkSync'
 
 type AnimatedIconHandle =
   | SearchIconHandle
@@ -72,7 +75,8 @@ const getNavMainItems = (
   onNewProject: () => void,
   onSearch: () => void,
   onNewChat: () => void,
-  onJanClaw: () => void
+  onJanClaw: () => void,
+  onNewCowork: () => void
 ): NavMainItem[] => [
   {
     title: 'common:newChat',
@@ -87,6 +91,12 @@ const getNavMainItems = (
         <Kbd className="bg-transparent size-3 uppercase">{PlatformShortcuts[ShortcutAction.NEW_CHAT].key}</Kbd>
       </KbdGroup>
     ),
+  },
+  {
+    title: 'common:cowork',
+    animatedIcon: BotIcon,
+    onClick: onNewCowork,
+    testId: 'nav-cowork',
   },
   {
     title: 'common:newAgentChat',
@@ -199,8 +209,23 @@ export function NavMain({
     () => {
       useAgentMode.getState().setAgentMode(TEMPORARY_CHAT_ID, true)
       navigate({ to: route.home })
+    },
+    () => {
+      const sessionId = useCoworkSessions
+        .getState()
+        .createSession({ forceNew: true })
+      closeMobileForNavigation()
+      navigate({
+        to: route.coworkSession,
+        params: { sessionId },
+      })
     }
-  ).filter((item) => item.title !== 'common:newAgentChat')
+  ).filter(
+    (item) =>
+      item.title !== 'common:newAgentChat' &&
+      (item.title !== 'common:cowork' ||
+        (supportsCowork() && isCoworkEnabled()))
+  )
 
   const handleCreateProject = async (name: string, assistantId?: string) => {
     const newProject = await addFolder(name, assistantId)

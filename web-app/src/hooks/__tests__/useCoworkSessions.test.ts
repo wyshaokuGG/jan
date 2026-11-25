@@ -224,6 +224,17 @@ describe('useCoworkSessions createSession reuse', () => {
     expect(useCoworkSessions.getState().sessions).toHaveLength(1)
   })
 
+  it('creates a new session when explicitly requested', () => {
+    const first = useCoworkSessions.getState().createSession()
+    const second = useCoworkSessions.getState().createSession({ forceNew: true })
+    expect(second).not.toBe(first)
+    expect(useCoworkSessions.getState().sessions.map((session) => session.id)).toEqual([
+      second,
+      first,
+    ])
+    expect(useCoworkSessions.getState().currentId).toBe(second)
+  })
+
   it('creates a fresh session once the current one has turns', () => {
     const first = useCoworkSessions.getState().createSession()
     useCoworkSessions

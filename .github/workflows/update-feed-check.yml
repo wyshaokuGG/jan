@@ -12,15 +12,9 @@
 #     touches the checker (fast, no network).
 #   - live: fetches the real feeds and probes every advertised asset URL.
 #
-# The 23:00 UTC slot is deliberate: jan-tauri-build-nightly starts at 20:00 UTC
-# (cron '0 20 * * 1,2,3'), so on the nights it runs this validates the feed
-# users are actually being pointed at rather than the previous one. Note the
-# publish is Mon/Tue/Wed only while this check is daily -- on the other four
-# mornings it is re-validating an unchanged feed, which is still worth doing
-# (an asset can 404 without the feed changing) but is not evidence of a fresh
-# build. (Follow-up: also run the live check as the final step of the publish
-# job itself, for same-minute feedback.) Cancel-in-progress stays off so a
-# checker push cannot eat an in-flight nightly verification.
+# Fixture checks run on relevant pushes and pull requests. The live feed check
+# is available through manual dispatch to avoid polling production feeds on a
+# schedule.
 #
 # Scope limit worth knowing: the live mode probes the feeds this script lists --
 # apps.jan.ai/update-check and delta.jan.ai/nightly/latest.json. Nightly builds
@@ -38,8 +32,6 @@ permissions:
   contents: read
 
 on:
-  schedule:
-    - cron: '0 23 * * *'
   workflow_dispatch:
   push:
     paths:
@@ -68,7 +60,7 @@ jobs:
         run: node scripts/check-update-feeds.mjs
 
   live:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2

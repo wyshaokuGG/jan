@@ -1,21 +1,6 @@
 name: Engine Build
 on:
   workflow_dispatch:
-  # On main, only what engine-prebuilt.sh hashes into its key or what
-  # provisions the toolchain it reads, so the prebuilt is re-saved as soon as
-  # its key moves. Paths are not evaluated for tags, which still always run.
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
-    paths:
-      - .github/workflows/engine-build.yml
-      - .github/actions/setup-engine-toolchain/action.yml
-      - Makefile
-      - src-tauri/build-utils/*engine*.sh
-      - src-tauri/plugins/tauri-plugin-llamacpp/build.rs
-      - src-tauri/plugins/tauri-plugin-llamacpp/Cargo.toml
   pull_request:
     branches:
       - dev
@@ -31,8 +16,7 @@ on:
       - src-tauri/plugins/tauri-plugin-llamacpp/shim/**
       - src-tauri/plugins/tauri-plugin-llamacpp/src/bin/**
 
-# Not cancelled on main: a newer push waits for a two-hour CUDA build to save
-# its prebuilt, then hits it if the key did not move, instead of starting over.
+# Manual runs on main are not cancelled so long builds can finish.
 concurrency:
   group: engine-build-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -44,14 +28,10 @@ jobs:
   # rust-check.yml compiles this plugin with default features, which leave the
   # engine OFF -- so nothing there links llama.cpp, and a broken shim or build.rs
   # would first surface in a nightly desktop build. A PR gets the one cheapest
-  # variant that still links the shim; the full per-vendor matrix is for a tag or
-  # a manual run, where the wall clock of a CUDA plus HIP build is affordable.
-  # A push to main builds only the variants the desktop builds restore from
-  # engine-prebuilt.sh, and only if that prebuilt is missing (see `prebuilt`).
+  # variant that still links the shim; the full per-vendor matrix is available
+  # through manual dispatch.
   variants:
     name: Select variants
-    # A fork's main has no S3 credentials, so it could only compile, never save
-    if: github.event_name != 'push' || github.ref != 'refs/heads/main' || !github.event.repository.fork
     runs-on: ubuntu-latest
     outputs:
       include: ${{ steps.select.outputs.include }}
@@ -64,10 +44,6 @@ jobs:
           ]'
           # The desktop templates' runner and variant, which the key depends on;
           # windows-arm64 has its own toolchain and job below.
-          main='[
-            {"name":"linux-x64-cuda13","variant":"cuda13-vulkan","runs-on":"ubuntu-22.04","prebuilt":true},
-            {"name":"windows-x64-cuda13","variant":"cuda13-vulkan","runs-on":"windows-2025","prebuilt":true}
-          ]'
           full='[
             {"name":"linux-x64-cuda13","variant":"cuda13-vulkan","runs-on":"ubuntu-22.04"},
             {"name":"linux-x64-cuda12","variant":"cuda12-vulkan","runs-on":"ubuntu-22.04"},
@@ -88,8 +64,6 @@ jobs:
           #                        an installer run, not an apt line
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "include=$(echo "$pr" | jq -c .)" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "include=$(echo "$main" | jq -c .)" >> "$GITHUB_OUTPUT"
           else
             echo "include=$(echo "$full" | jq -c .)" >> "$GITHUB_OUTPUT"
           fi
@@ -102,7 +76,7 @@ jobs:
     # then runs `sudo apt-get install`, which is arbitrary code execution by
     # construction, but now only ever on an ephemeral image. Drop the `if` to
     # give fork PRs engine coverage. Same guard as jan-tauri-build-nightly.yaml;
-    # `workflow_dispatch` and tag pushes are unaffected.
+    # Manual dispatch and same-repository pull requests are unaffected.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ matrix.runs-on }}
     strategy:

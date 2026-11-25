@@ -316,15 +316,18 @@ describe('NavHistory one row per conversation (write-through mirror)', () => {
     expect(toast.error).toHaveBeenCalledWith('common:coworkSessionUnavailable')
   })
 
-  it('tells the user instead of bouncing home when the session is untouched', () => {
+  it('opens an untouched session as a new Cowork task', () => {
     useCoworkSessions.setState({
       sessions: [{ ...session('blank', 'Blank'), turns: [] }],
     })
     useThreads.setState({ threads: { blank: mirror('blank', 'Blank') } })
     render(<NavHistory />)
     fireEvent.click(screen.getByTestId('history-cowork-blank'))
-    expect(router.navigate).not.toHaveBeenCalled()
-    expect(toast.error).toHaveBeenCalledWith('common:coworkSessionUnavailable')
+    expect(router.navigate).toHaveBeenCalledWith({
+      to: route.coworkSession,
+      params: { sessionId: 'blank' },
+    })
+    expect(toast.error).not.toHaveBeenCalled()
   })
 
   it('deletes a mirrored session through the session store', () => {

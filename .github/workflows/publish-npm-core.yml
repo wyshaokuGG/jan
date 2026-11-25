@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
 jobs:
   build-and-publish-plugins:
+    if: github.event_name != 'push' || github.repository == 'janhq/jan'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2

@@ -1,7 +1,5 @@
 name: "Clean old cloudflare pages preview urls and nightly build"
 on:
-  schedule:
-    - cron: "0 0 * * *" # every day at 00:00
   workflow_dispatch:
 
 jobs:

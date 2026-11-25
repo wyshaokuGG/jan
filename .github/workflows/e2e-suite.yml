@@ -10,14 +10,10 @@
 # Deliberately not folded into jan-tauri-build-nightly.yaml: that pipeline
 # publishes to S3, and its artifacts are release bundles built without the `e2e`
 # cargo feature, so they have no embedded WebDriver and this suite cannot use
-# them. There is nothing to share but the cron.
+# them. Run this suite manually when needed.
 name: e2e suite
 
 on:
-  # Two hours after jan-tauri-build-nightly, so a broken build is already
-  # visible and this is not the first thing anyone has to triage.
-  schedule:
-    - cron: '0 22 * * 1,2,3'
   workflow_dispatch:
     inputs:
       platforms:
@@ -102,13 +98,10 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      # No cargo cache on purpose. rust-check.yml's policy of restoring on
-      # branches and saving only on main would not help here and would hurt:
-      # this workflow's main trigger IS a schedule, which runs on main, so it
-      # would save four debug `target` trees three nights a week into a repo
-      # already past the 10GB cache cap -- evicting the release builds' caches
-      # to speed up a job that does not need it. A cold build measured 6m14s on
-      # linux and 11m16s on windows-x64, which is the whole budget anyway.
+      # No cargo cache on purpose: saving four debug `target` trees into a repo
+      # already past the 10GB cache cap would evict release caches for a job
+      # whose cold build is already within budget. It measured 6m14s on linux
+      # and 11m16s on windows-x64.
 
       - name: Free disk space
         if: runner.os == 'Linux' && runner.environment == 'github-hosted'
